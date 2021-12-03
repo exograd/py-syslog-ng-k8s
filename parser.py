@@ -25,7 +25,8 @@ class KubernetesParser(object):
 
         try:
             level = message[0]
-            # The log message format does not contain year.
+            # The log message format does not contain year. I assume the
+            # log message was emit in the current year.
             year = datetime.datetime.now().year
             month = int(message[1:3])
             day = int(message[3:5])
