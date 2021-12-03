@@ -2,12 +2,23 @@ import datetime
 
 class KubernetesParser(object):
     def init(self, options):
+        """
+        Initializes the parser
+        """
+        self.prefix = options.get("prefix", "kubernetes")
         return True
 
     def deinit(self):
+        """
+        Deinitializes the parser, often empty
+        """
         return True
 
-    def parse(self, message):
+    def parse(self, log):
+        """
+        Parses the log message and returns results
+        """
+        message = log['MESSAGE'].decode('utf-8')
         # log message must contains at least 45 characters to be valid.
         if len(message) < 45:
             return False
@@ -22,7 +33,7 @@ class KubernetesParser(object):
             minute = int(message[9:11])
             second = int(message[12:14])
             microsecond = int(message[15:21])
-            thread = int(message[22:29].strip())
+            thread = message[22:29].strip()
             i = 30 + message[30:].index(":")
             filename = message[30:i]
             j = i + 1 + message[i+1:].index("]")
@@ -30,6 +41,11 @@ class KubernetesParser(object):
 
             ts = datetime.datetime(year, month, day,
                                    hour, minute, second, microsecond)
+
+            log[self.prefix + "ts"] = ts.isoformat()
+            log[self.prefix + "thread"] = thread
+            log[self.prefix + "filename"] = filename
+            log[self.prefix + "line"] = line
             
             return True
         except ValueError:
