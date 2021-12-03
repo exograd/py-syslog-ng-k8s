@@ -43,11 +43,30 @@ class KubernetesParser(object):
             ts = datetime.datetime(year, month, day,
                                    hour, minute, second, microsecond)
 
+            msg = ""
+            if message[j+2] != '"':
+                # Message without metadata
+                msg = message[j+2:]
+            else:
+                # Message with metadata
+                k = j+3
+                while k < len(message):
+                    if message[k] == "\\" and message[k+1] == "\"":
+                        msg += message[k+1]
+                        k += 2
+                    elif message[k] == "\"":
+                        k += 1
+                        break
+                    else:
+                        msg += message[k]
+                        k += 1
+
             log[self.prefix + "ts"] = ts.isoformat()
             log[self.prefix + "thread"] = thread
             log[self.prefix + "filename"] = filename
             log[self.prefix + "line"] = line
-            
+            log['MESSAGE'] = msg
+
             return True
         except ValueError:
             return False
