@@ -95,4 +95,5 @@ class KubernetesParser(object):
 
             return True
         except ValueError:
+            log['MESSAGE'] = "Cannot parse kubernetes log message: %s" % message
             return False
