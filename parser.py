@@ -43,6 +43,7 @@ class KubernetesParser(object):
             ts = datetime.datetime(year, month, day,
                                    hour, minute, second, microsecond)
 
+            metadata = {}
             msg = ""
             if message[j+2] != '"':
                 # Message without metadata
@@ -60,6 +61,31 @@ class KubernetesParser(object):
                     else:
                         msg += message[k]
                         k += 1
+                key = ""
+                value = ""
+                parse_value = False
+                while k < len(message):
+                    if parse_value == False:
+                        l = message[k:].index("=")
+                        key = message[k:k+l].strip()
+                        k += l + 2
+                        parse_value = True
+                    else:
+                        if message[k] == "\\" and message[k+1] == "\"":
+                            value += message[k+1]
+                            k += 2
+                        elif message[k] == "\"":
+                            k += 1
+                            metadata[key] = value
+                            parse_value = false
+                            key = ""
+                            value = ""
+                        else:
+                            value += message[k]
+                            k += 1
+
+            for key in metadata:
+                log[self.prefix + key] = metadata[key]
 
             log[self.prefix + "ts"] = ts.isoformat()
             log[self.prefix + "thread"] = thread
