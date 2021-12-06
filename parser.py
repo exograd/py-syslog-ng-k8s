@@ -17,6 +17,20 @@
 import datetime
 
 class KubernetesParser(object):
+    INIT = 0
+    MESSAGE = 1
+    QUOTED_MESSAGE = 2
+    METADATA = 3
+    METADATA_KEY = 4
+    METADATA_VALUE = 5
+    METADATA_QUOTED_VALUE = 6
+    METADATA_UNQUOTED_VALUE = 7
+    NEXT_METADATA = 8
+
+    QUOTE = "\""
+    SLASH = "\\"
+    SPACE = " "
+
     def init(self, options):
         """
         Initializes the parser
@@ -35,92 +49,118 @@ class KubernetesParser(object):
         Parses the log message and returns results
         """
         message = log['MESSAGE'].decode('utf-8')
-        # log message must contains at least 45 characters to be valid.
-        if len(message) < 30:
-            return False
-
-        try:
-            level = message[0]
-            # The log message format does not contain year. I assume the
-            # log message was emit in the current year.
-            year = datetime.datetime.now().year
-            month = int(message[1:3])
-            day = int(message[3:5])
-            hour = int(message[6:8])
-            minute = int(message[9:11])
-            second = int(message[12:14])
-            microsecond = int(message[15:21])
-            thread = message[22:29].strip()
-            i = 30 + message[30:].index(":")
-            filename = message[30:i]
-            j = i + 1 + message[i+1:].index("]")
-            line = message[i+1:j]
-
-            ts = datetime.datetime(year, month, day,
-                                   hour, minute, second, microsecond)
-
-            metadata = {}
-            msg = ""
-            if message[j+2] != '"':
-                # Message without metadata
-                msg = message[j+2:]
-            else:
-                # Message with metadata
-                k = j+3
-                while k < len(message):
-                    if message[k] == "\\" and message[k+1] == "\"":
-                        msg += message[k+1]
-                        k += 2
-                    elif message[k] == "\"":
-                        k += 1
-                        break
-                    else:
-                        msg += message[k]
-                        k += 1
-                key = ""
-                value = ""
-                parse_value = False
-                while k < len(message):
-                    if parse_value == False:
-                        l = message[k:].index("=")
-                        key = message[k:k+l].strip()
-                        k += l + 2
-                        parse_value = True
-                    else:
-                        if message[k] == "\\" and message[k+1] == "\"":
-                            value += message[k+1]
-                            k += 2
-                        elif message[k] == "\"":
-                            k += 1
-                            metadata[key] = value
-                            parse_value = False
-                            key = ""
-                            value = ""
-                        else:
-                            value += message[k]
-                            k += 1
-
-            for key in metadata:
-                log[self.prefix + key] = metadata[key]
-
-            if level == "I":
-                log["LEVEL_NUM"] = 5
-            elif level == "W":
-                log["LEVEL_NUM"] = 4
-            elif level == "E":
-                log["LEVEL_NUM"] = 3
-            elif level == "F":
-                log["LEVEL_NUM"] = 2
-            else:
-                log["LEVEL_NUM"] = 0
-
-            log[self.prefix + "ts"] = ts.isoformat()
-            log[self.prefix + "thread"] = thread
-            log[self.prefix + "filename"] = filename
-            log[self.prefix + "line"] = line
-            log['MESSAGE'] = msg
-
+        level = message[0]
+        if level != "I" or level != "W" or level != "E" or level != "F":
+            log['MESSAGE'] = message
             return True
-        except ValueError:
-            log['MESSAGE'] = "Cannot parse kubernetes log message: %s" % message
-            return False
+
+        year = datetime.datetime.now().year
+        month = int(message[1:3])
+        day = int(message[3:5])
+        hour = int(message[6:8])
+        minute = int(message[9:11])
+        second = int(message[12:14])
+        microsecond = int(message[15:21])
+        thread = message[22:29].strip()
+        i = 30 + message[30:].index(":")
+        filename = message[30:i]
+        j = i + 1 + message[i+1:].index("]")
+        line = message[i+1:j]
+
+        ts = datetime.datetime(year, month, day,
+                               hour, minute, second, microsecond)
+
+        metadata = {}
+        msg = ""
+        k = j + 2
+        state = INIT
+        current_key = ""
+
+        while k < len(message):
+            if state == INIT:
+                if message[k] == QUOTE:
+                    state = QUOTED_MESSAGE
+                else:
+                    state = MESSAGE
+                k += 1
+
+            elif state == MESSAGE:
+                msg += message[k]
+                k += 1
+
+            elif state == QUOTED_MESSAGE:
+                if message[k] == SLASH and \
+                   message[k+1] == QUOTE:
+                    msg += message[k+1]
+                    k += 1
+                elif message[k] == QUOTE:
+                    state = METADATA
+                else:
+                    msg += message[k]
+                k += 1
+
+            elif state == METADATA:
+                if message[k] == " ":
+                    k += 1
+                else:
+                    state = METADATA_CURRENT_KEY
+
+            elif state == METADATA_CURRENT_KEY:
+                if message[k] == "=":
+                    metadata[current_key] = ""
+                    state = METADATA_VALUE
+                else:
+                    current_key += message[k]
+                k += 1
+
+            elif state == METADATA_VALUE:
+                if message[k] == QUOTE:
+                    state = METADATA_QUOTED_VALUE
+                    k += 1
+                else:
+                    state = METADATA_UNQUOTED_VALUE
+
+            elif state == METADATA_QUOTED_VALUE:
+                if message[k] == SLASH and \
+                   message[k+1] == QUOTE:
+                    metadata[current_key] += message[k+1]
+                    k += 1
+                elif message[k] == QUOTE:
+                    state = NEXT_METADATA
+                else:
+                    metadata[current_key] += message[k]
+                k += 1
+
+            elif state == METADATA_UNQUOTED_VALUE:
+                if message[k] == SPACE:
+                    state = NEXT_METADATA
+                else:
+                    metadata[current_key] += message[k]
+                k += 1
+
+            elif state == NEXT_METADATA:
+                current_key = ""
+                state = METADATA
+
+
+        for key in metadata:
+            log[self.prefix + key] = metadata[key]
+
+        if level == "I":
+            log[self.prefix + "level"] = 5
+        elif level == "W":
+            log[self.prefix + "level"] = 4
+        elif level == "E":
+            log[self.prefix + "level"] = 3
+        elif level == "F":
+            log[self.prefix + "level"] = 2
+        else:
+            log[self.prefix + "level"] = 0
+
+        log[self.prefix + "ts"] = ts.isoformat()
+        log[self.prefix + "thread"] = thread
+        log[self.prefix + "filename"] = filename
+        log[self.prefix + "line"] = line
+        log['MESSAGE'] = msg
+
+        return True
