@@ -36,7 +36,7 @@ class KubernetesParser(object):
         """
         message = log['MESSAGE'].decode('utf-8')
         # log message must contains at least 45 characters to be valid.
-        if len(message) < 45:
+        if len(message) < 30:
             return False
 
         try:
