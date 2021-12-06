@@ -53,11 +53,6 @@ class KubernetesParser(object):
 
         message = log['MESSAGE'].decode('utf-8')
         level = message[0]
-        if level != 'I' and level != 'W' and level != 'E' and \
-           level != 'F':
-            log['MESSAGE'] = message
-            return True
-
         year = datetime.datetime.now().year
         month = int(message[1:3])
         day = int(message[3:5])
