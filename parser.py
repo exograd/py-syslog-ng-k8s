@@ -103,9 +103,9 @@ class KubernetesParser(object):
                 if message[k] == " ":
                     k += 1
                 else:
-                    state = METADATA_CURRENT_KEY
+                    state = METADATA_KEY
 
-            elif state == METADATA_CURRENT_KEY:
+            elif state == METADATA_KEY:
                 if message[k] == "=":
                     metadata[current_key] = ""
                     state = METADATA_VALUE
