@@ -5,7 +5,7 @@ class KubernetesParser(object):
         """
         Initializes the parser
         """
-        self.prefix = options.get("prefix", "kubernetes.")
+        self.prefix = options.get("prefix", ".SDATA.kubernetes@32473.")
         return True
 
     def deinit(self):
