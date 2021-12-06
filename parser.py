@@ -87,6 +87,17 @@ class KubernetesParser(object):
             for key in metadata:
                 log[self.prefix + key] = metadata[key]
 
+            if level == "I":
+                log["LEVEL_NUM"] = 5
+            elif level == "W":
+                log["LEVEL_NUM"] = 4
+            elif level == "E":
+                log["LEVEL_NUM"] = 3
+            elif level == "F":
+                log["LEVEL_NUM"] = 2
+            else:
+                log["LEVEL_NUM"] = 0
+
             log[self.prefix + "ts"] = ts.isoformat()
             log[self.prefix + "thread"] = thread
             log[self.prefix + "filename"] = filename
