@@ -17,6 +17,7 @@
 import datetime
 
 class KubernetesParser(object):
+
     INIT = 0
     MESSAGE = 1
     QUOTED_MESSAGE = 2
@@ -27,30 +28,33 @@ class KubernetesParser(object):
     METADATA_UNQUOTED_VALUE = 7
     NEXT_METADATA = 8
 
-    QUOTE = "\""
-    SLASH = "\\"
-    SPACE = " "
+    QUOTE = '"'
+    SLASH = '\\'
+    SPACE = ' '
 
     def init(self, options):
         """
         Initializes the parser
         """
-        self.prefix = options.get("prefix", ".SDATA.kubernetes@32473.")
+
+        self.prefix = options.get('prefix', '.SDATA.kubernetes@32473.')
         return True
 
     def deinit(self):
         """
         Deinitializes the parser, often empty
         """
+
         return True
 
     def parse(self, log):
         """
         Parses the log message and returns results
         """
+
         message = log['MESSAGE'].decode('utf-8')
         level = message[0]
-        if level != "I" or level != "W" or level != "E" or level != "F":
+        if level != 'I' or level != 'W' or level != 'E' or level != 'F':
             log['MESSAGE'] = message
             return True
 
@@ -62,19 +66,26 @@ class KubernetesParser(object):
         second = int(message[12:14])
         microsecond = int(message[15:21])
         thread = message[22:29].strip()
-        i = 30 + message[30:].index(":")
+        i = 30 + message[30:].index(':')
         filename = message[30:i]
-        j = i + 1 + message[i+1:].index("]")
-        line = message[i+1:j]
+        j = i + 1 + message[i + 1:].index(']')
+        line = message[i + 1:j]
 
-        ts = datetime.datetime(year, month, day,
-                               hour, minute, second, microsecond)
+        ts = datetime.datetime(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            microsecond,
+            )
 
         metadata = {}
-        msg = ""
+        msg = ''
         k = j + 2
         state = INIT
-        current_key = ""
+        current_key = ''
 
         while k < len(message):
             if state == INIT:
@@ -83,84 +94,73 @@ class KubernetesParser(object):
                 else:
                     state = MESSAGE
                 k += 1
-
             elif state == MESSAGE:
                 msg += message[k]
                 k += 1
-
             elif state == QUOTED_MESSAGE:
-                if message[k] == SLASH and \
-                   message[k+1] == QUOTE:
-                    msg += message[k+1]
+                if message[k] == SLASH and message[k + 1] == QUOTE:
+                    msg += message[k + 1]
                     k += 1
                 elif message[k] == QUOTE:
                     state = METADATA
                 else:
                     msg += message[k]
                 k += 1
-
             elif state == METADATA:
-                if message[k] == " ":
+                if message[k] == ' ':
                     k += 1
                 else:
                     state = METADATA_KEY
-
             elif state == METADATA_KEY:
-                if message[k] == "=":
-                    metadata[current_key] = ""
+                if message[k] == '=':
+                    metadata[current_key] = ''
                     state = METADATA_VALUE
                 else:
                     current_key += message[k]
                 k += 1
-
             elif state == METADATA_VALUE:
                 if message[k] == QUOTE:
                     state = METADATA_QUOTED_VALUE
                     k += 1
                 else:
                     state = METADATA_UNQUOTED_VALUE
-
             elif state == METADATA_QUOTED_VALUE:
-                if message[k] == SLASH and \
-                   message[k+1] == QUOTE:
-                    metadata[current_key] += message[k+1]
+                if message[k] == SLASH and message[k + 1] == QUOTE:
+                    metadata[current_key] += message[k + 1]
                     k += 1
                 elif message[k] == QUOTE:
                     state = NEXT_METADATA
                 else:
                     metadata[current_key] += message[k]
                 k += 1
-
             elif state == METADATA_UNQUOTED_VALUE:
                 if message[k] == SPACE:
                     state = NEXT_METADATA
                 else:
                     metadata[current_key] += message[k]
                 k += 1
-
             elif state == NEXT_METADATA:
-                current_key = ""
+                current_key = ''
                 state = METADATA
-
 
         for key in metadata:
             log[self.prefix + key] = metadata[key]
 
-        if level == "I":
-            log[self.prefix + "level"] = 5
-        elif level == "W":
-            log[self.prefix + "level"] = 4
-        elif level == "E":
-            log[self.prefix + "level"] = 3
-        elif level == "F":
-            log[self.prefix + "level"] = 2
+        if level == 'I':
+            log[self.prefix + 'level'] = 5
+        elif level == 'W':
+            log[self.prefix + 'level'] = 4
+        elif level == 'E':
+            log[self.prefix + 'level'] = 3
+        elif level == 'F':
+            log[self.prefix + 'level'] = 2
         else:
-            log[self.prefix + "level"] = 0
+            log[self.prefix + 'level'] = 0
 
-        log[self.prefix + "ts"] = ts.isoformat()
-        log[self.prefix + "thread"] = thread
-        log[self.prefix + "filename"] = filename
-        log[self.prefix + "line"] = line
+        log[self.prefix + 'ts'] = ts.isoformat()
+        log[self.prefix + 'thread'] = thread
+        log[self.prefix + 'filename'] = filename
+        log[self.prefix + 'line'] = line
         log['MESSAGE'] = msg
 
         return True
