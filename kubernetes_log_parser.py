@@ -83,7 +83,7 @@ class KubernetesParser(object):
 
         metadata = {}
         msg = ''
-        k = j + message[j:].index(']') + 1
+        k = j + message[j:].index(']') + 2
         state = INIT
         current_key = ''
 
