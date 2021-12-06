@@ -77,7 +77,7 @@ class KubernetesParser(object):
                         elif message[k] == "\"":
                             k += 1
                             metadata[key] = value
-                            parse_value = false
+                            parse_value = False
                             key = ""
                             value = ""
                         else:
