@@ -17,21 +17,6 @@
 import datetime
 
 class KubernetesParser(object):
-
-    INIT = 0
-    MESSAGE = 1
-    QUOTED_MESSAGE = 2
-    METADATA = 3
-    METADATA_KEY = 4
-    METADATA_VALUE = 5
-    METADATA_QUOTED_VALUE = 6
-    METADATA_UNQUOTED_VALUE = 7
-    NEXT_METADATA = 8
-
-    QUOTE = '"'
-    SLASH = '\\'
-    SPACE = ' '
-
     def init(self, options):
         """
         Initializes the parser
@@ -51,6 +36,20 @@ class KubernetesParser(object):
         """
         Parses the log message and returns results
         """
+        INIT = 0
+        MESSAGE = 1
+        QUOTED_MESSAGE = 2
+        METADATA = 3
+        METADATA_KEY = 4
+        METADATA_VALUE = 5
+        METADATA_QUOTED_VALUE = 6
+        METADATA_UNQUOTED_VALUE = 7
+        NEXT_METADATA = 8
+
+        QUOTE = '"'
+        SLASH = '\\'
+        SPACE = ' '
+        EQUAL = '='
 
         message = log['MESSAGE'].decode('utf-8')
         level = message[0]
@@ -112,7 +111,7 @@ class KubernetesParser(object):
                 else:
                     state = METADATA_KEY
             elif state == METADATA_KEY:
-                if message[k] == '=':
+                if message[k] == EQUAL:
                     metadata[current_key] = ''
                     state = METADATA_VALUE
                 else:
