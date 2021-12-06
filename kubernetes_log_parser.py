@@ -53,7 +53,8 @@ class KubernetesParser(object):
 
         message = log['MESSAGE'].decode('utf-8')
         level = message[0]
-        if level != 'I' or level != 'W' or level != 'E' or level != 'F':
+        if level != 'I' and level != 'W' and level != 'E' and \
+           level != 'F':
             log['MESSAGE'] = message
             return True
 
