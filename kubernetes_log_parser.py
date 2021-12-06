@@ -147,15 +147,15 @@ class KubernetesParser(object):
             log[self.prefix + key] = metadata[key]
 
         if level == 'I':
-            log[self.prefix + 'level'] = 5
+            log[self.prefix + 'level'] = '5'
         elif level == 'W':
-            log[self.prefix + 'level'] = 4
+            log[self.prefix + 'level'] = '4'
         elif level == 'E':
-            log[self.prefix + 'level'] = 3
+            log[self.prefix + 'level'] = '3'
         elif level == 'F':
-            log[self.prefix + 'level'] = 2
+            log[self.prefix + 'level'] = '2'
         else:
-            log[self.prefix + 'level'] = 0
+            log[self.prefix + 'level'] = '0'
 
         log[self.prefix + 'ts'] = ts.isoformat()
         log[self.prefix + 'thread'] = thread
