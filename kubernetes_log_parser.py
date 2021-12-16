@@ -64,7 +64,7 @@ class KubernetesParser(object):
         i = 30 + message[30:].index(':')
         filename = message[30:i]
         j = i + 1 + message[i + 1:].index(']')
-        line = message[i + 1:j]
+        line = message[i+1:j]
 
         ts = datetime.datetime(
             year,
