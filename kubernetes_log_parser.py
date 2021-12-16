@@ -78,7 +78,7 @@ class KubernetesParser(object):
 
         metadata = {}
         msg = ''
-        k = j + message[j:].index(']') + 2
+        k = j+2
         state = INIT
         current_key = ''
 
@@ -86,9 +86,9 @@ class KubernetesParser(object):
             if state == INIT:
                 if message[k] == QUOTE:
                     state = QUOTED_MESSAGE
+                    k += 1
                 else:
                     state = MESSAGE
-                k += 1
             elif state == MESSAGE:
                 msg += message[k]
                 k += 1
